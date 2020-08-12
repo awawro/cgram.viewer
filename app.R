@@ -22,11 +22,13 @@ ui <- fluidPage(
     # Sidebar with a slider input for number of bins 
     sidebarLayout(
         sidebarPanel(
+            helpText("Upload a .csv file containing MRM data"),
             fileInput("datafile", "csv datafile", accept = ".csv"),
             uiOutput("select_file"),
             uiOutput("select_precursor"),
             uiOutput("select_product"),
-            uiOutput("slider_time_range")
+            uiOutput("slider_time_range"),
+            uiOutput("fixed_y")
         ),
 
         # Show a plot of the generated distribution
@@ -70,6 +72,11 @@ server <- function(input, output, session) {
         req(input$datafile)
         selectInput("cgram_product_selected", "select product ion", choices = cgram_product_available(), multiple = TRUE)
     })
+    
+    output$fixed_y <- renderUI({
+        req(input$datafile, input$cgram_product_selected)
+        checkboxInput("fix_y_axis", "fix y axis", value = TRUE)
+    })
 
     filtered_parsed_datafile <- reactive({
         filter(parsed_datafile(),
@@ -90,11 +97,15 @@ server <- function(input, output, session) {
     
     output$cgram_plot <- renderPlot({
         req(input$datafile, input$cgram_product_selected)
+        
+        scales_y <- if_else(input$fix_y_axis, "fixed", "free_y")
+        
         ggplot(data = filtered_parsed_datafile(), aes(x = time, y = intensity, color = file)) +
             geom_line() +
             xlim(input$time_range[1], input$time_range[2]) +
             theme_bw() +
-            facet_grid(precursor.ion ~ product.ion)
+            #facet_grid(precursor.ion ~ product.ion, scales = scales_y)
+            facet_wrap(.~interaction(precursor.ion,product.ion, sep = " -> "), scales = scales_y)
     })
 
 }
