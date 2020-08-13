@@ -28,7 +28,10 @@ ui <- fluidPage(
             uiOutput("select_precursor"),
             uiOutput("select_product"),
             uiOutput("slider_time_range"),
-            uiOutput("fixed_y"),
+            fluidRow(
+              column(6, uiOutput("fixed_y")),
+              column(6, numericInput("legend_cols", "n col", 2, min = 1, step = 1))
+            ),
             fluidRow(
                 column(6, sliderInput("plot_width", "select plot w", min = 200, max = 1200, value = 400, step = 10)),
                 column(6, sliderInput("plot_height", "select plot h", min = 200, max = 1200, value = 400, step = 10))
@@ -120,6 +123,7 @@ server <- function(input, output, session) {
             xlim(input$time_range[1], input$time_range[2]) +
             theme_bw() +
             theme(legend.position = "bottom") +
+            guides(color = guide_legend(ncol = input$legend_cols)) +
             facet_wrap(.~interaction(precursor.ion,product.ion, sep = " -> "), scales = scales_y)
         
         vals$gg <- gg
