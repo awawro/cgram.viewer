@@ -34,8 +34,8 @@ ui <- fluidPage(
                 column(6, sliderInput("plot_height", "select plot h", min = 200, max = 1200, value = 400, step = 10))
             ),
             fluidRow(
-                column(6, numericInput("pdf_width", "pdf w", 5)),
-                column(6, numericInput("pdf_height", "pdf h", 5))
+                column(6, numericInput("out_width", "out w", 5)),
+                column(6, numericInput("out_height", "out h", 5))
             ),
             fluidRow(
                 column(6, downloadButton("downloadPdfPlot", label = "as PDF")),
@@ -130,14 +130,14 @@ server <- function(input, output, session) {
     output$downloadPdfPlot <- downloadHandler(
         filename = "plot.pdf",
         content = function(file) {
-            ggsave(file, vals$gg, width = input$pdf_width, height = input$pdf_height, device = "pdf")
+            ggsave(file, vals$gg, width = input$out_width, height = input$out_height, device = "pdf")
         }
     )
     
     output$downloadPngPlot <- downloadHandler(
         filename = "plot.png",
         content = function(file) {
-            ggsave(file, vals$gg, width = input$pdf_width, height = input$pdf_height, device = "png")
+            ggsave(file, vals$gg, width = input$out_width, height = input$out_height, device = "png")
         }
     )
 
