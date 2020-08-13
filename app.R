@@ -28,16 +28,25 @@ ui <- fluidPage(
             uiOutput("select_precursor"),
             uiOutput("select_product"),
             uiOutput("slider_time_range"),
-            uiOutput("fixed_y")
+            uiOutput("fixed_y"),
+            fluidRow(
+                column(6, sliderInput("plot_width", "select plot w", min = 200, max = 1200, value = 400, step = 10)),
+                column(6, sliderInput("plot_height", "select plot h", min = 200, max = 1200, value = 400, step = 10))
+            ),
+            fluidRow(
+                column(6, numericInput("pdf_width", "pdf w", 5)),
+                column(6, numericInput("pdf_height", "pdf h", 5))
+            ),
+            fluidRow(
+                column(6, downloadButton("downloadPdfPlot", label = "as PDF")),
+                column(6, downloadButton("downloadPngPlot", label = "as PNG"))
+            )
         ),
 
         # Show a plot of the generated distribution
         mainPanel(
             tabsetPanel(
                 tabPanel("Plot", 
-                         sliderInput("plot_width", "select plot w", min = 200, max = 1200, value = 400, step = 10),
-                         sliderInput("plot_height", "select plot h", min = 200, max = 1200, value = 400, step = 10),
-                         downloadButton("downloadPlot"),
                          plotOutput("cgram_plot")),
                 tabPanel("Table", tableOutput("cgram_table"))
             )
@@ -118,12 +127,17 @@ server <- function(input, output, session) {
         print(gg)
     }, width = function() input$plot_width, height = function() input$plot_height)
     
-    output$downloadPlot <- downloadHandler(
-        filename = function() {paste("plot.pdf")},
+    output$downloadPdfPlot <- downloadHandler(
+        filename = "plot.pdf",
         content = function(file) {
-            pdf(file, width = 5, height = 5)
-            print(vals$gg)
-            dev.off()
+            ggsave(file, vals$gg, width = input$pdf_width, height = input$pdf_height, device = "pdf")
+        }
+    )
+    
+    output$downloadPngPlot <- downloadHandler(
+        filename = "plot.png",
+        content = function(file) {
+            ggsave(file, vals$gg, width = input$pdf_width, height = input$pdf_height, device = "png")
         }
     )
 
