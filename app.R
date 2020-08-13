@@ -34,7 +34,11 @@ ui <- fluidPage(
         # Show a plot of the generated distribution
         mainPanel(
             tabsetPanel(
-                tabPanel("Plot", plotOutput("cgram_plot")),
+                tabPanel("Plot", 
+                         sliderInput("plot_width", "select plot w", min = 200, max = 1200, value = 400, step = 10),
+                         sliderInput("plot_height", "select plot h", min = 200, max = 1200, value = 400, step = 10),
+                         downloadButton("downloadPlot"),
+                         plotOutput("cgram_plot")),
                 tabPanel("Table", tableOutput("cgram_table"))
             )
         )
@@ -43,6 +47,8 @@ ui <- fluidPage(
 
 # Define server logic required to draw a histogram
 server <- function(input, output, session) {
+    
+    vals <- reactiveValues()
     
     parsed_datafile <- reactive({
         parse_masshunter_csv(input$datafile$datapath)
@@ -100,13 +106,26 @@ server <- function(input, output, session) {
         
         scales_y <- if_else(input$fix_y_axis, "fixed", "free_y")
         
-        ggplot(data = filtered_parsed_datafile(), aes(x = time, y = intensity, color = file)) +
+        gg <- ggplot(data = filtered_parsed_datafile(), aes(x = time, y = intensity, color = file)) +
             geom_line() +
             xlim(input$time_range[1], input$time_range[2]) +
             theme_bw() +
-            #facet_grid(precursor.ion ~ product.ion, scales = scales_y)
+            theme(legend.position = "bottom") +
             facet_wrap(.~interaction(precursor.ion,product.ion, sep = " -> "), scales = scales_y)
-    })
+        
+        vals$gg <- gg
+        
+        print(gg)
+    }, width = function() input$plot_width, height = function() input$plot_height)
+    
+    output$downloadPlot <- downloadHandler(
+        filename = function() {paste("plot.pdf")},
+        content = function(file) {
+            pdf(file, width = 5, height = 5)
+            print(vals$gg)
+            dev.off()
+        }
+    )
 
 }
 
