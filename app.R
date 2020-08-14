@@ -8,6 +8,7 @@
 #
 
 library(shiny)
+library(shinyWidgets)
 library(dplyr)
 library(stringr)
 library(ggplot2)
@@ -22,28 +23,38 @@ ui <- fluidPage(
     # Sidebar with a slider input for number of bins 
     sidebarLayout(
         sidebarPanel(
+            prettySwitch("display_options", strong("display options"), status = "success", fill = TRUE), 
+            prettySwitch("export_options", strong("export options"), status = "success", fill = TRUE), 
             helpText("Upload a .csv file containing MRM data"),
             fileInput("datafile", "csv datafile", accept = ".csv"),
             uiOutput("select_file"),
             uiOutput("select_precursor"),
             uiOutput("select_product"),
             uiOutput("slider_time_range"),
-            fluidRow(
-              column(6, uiOutput("fixed_y")),
-              column(6, numericInput("legend_cols", "n col", 2, min = 1, step = 1))
+            conditionalPanel(condition = "input.display_options == true",
+                h4(strong("Display options")),
+                prettySwitch("fix_y_axis", "Lock y axis", status = "success", fill = TRUE),
+                fluidRow(
+                    column(6, sliderInput("legend_cols", "n col", min = 1, max = 5, value = 2, step = 1),),
+                    column(6, sliderInput("line_size", "line szie", min = 0.2, max = 2,value = 1, step = 0.2))
+                ),
+                fluidRow(
+                    column(6, sliderInput("plot_width", "select plot w", min = 200, max = 1200, value = 400, step = 10)),
+                    column(6, sliderInput("plot_height", "select plot h", min = 200, max = 1200, value = 400, step = 10))
+                )
             ),
-            fluidRow(
-                column(6, sliderInput("plot_width", "select plot w", min = 200, max = 1200, value = 400, step = 10)),
-                column(6, sliderInput("plot_height", "select plot h", min = 200, max = 1200, value = 400, step = 10))
-            ),
-            fluidRow(
-                column(6, numericInput("out_width", "out w", 5)),
-                column(6, numericInput("out_height", "out h", 5))
-            ),
-            fluidRow(
-                column(6, downloadButton("downloadPdfPlot", label = "as PDF")),
-                column(6, downloadButton("downloadPngPlot", label = "as PNG"))
+            conditionalPanel(condition = "input.export_options == true",
+                h4(strong("Export options")),
+                fluidRow(
+                    column(6, numericInput("out_width", "out w", 5)),
+                    column(6, numericInput("out_height", "out h", 5))
+                ),
+                fluidRow(
+                    column(6, downloadButton("downloadPdfPlot", label = "as PDF")),
+                    column(6, downloadButton("downloadPngPlot", label = "as PNG"))
+                )
             )
+            
         ),
 
         # Show a plot of the generated distribution
@@ -72,12 +83,12 @@ server <- function(input, output, session) {
     
     output$select_file <- renderUI({
         req(input$datafile)
-        selectInput("cgram_files_selected", "select cgram files", choices = cgram_files_all(), multiple = TRUE)
+        pickerInput("cgram_files_selected", "select cgram files", choices = cgram_files_all(), multiple = TRUE)
     })
     
     output$select_precursor <- renderUI({
         req(input$datafile)
-        selectInput("cgram_precursor_selected", "select precursor ion", choices = cgram_precursor_all(), multiple = TRUE)
+        pickerInput("cgram_precursor_selected", "select precursor ion", choices = cgram_precursor_all(), multiple = TRUE)
     })
     
     cgram_product_available <- reactive({
@@ -88,12 +99,7 @@ server <- function(input, output, session) {
     
     output$select_product <- renderUI({
         req(input$datafile)
-        selectInput("cgram_product_selected", "select product ion", choices = cgram_product_available(), multiple = TRUE)
-    })
-    
-    output$fixed_y <- renderUI({
-        req(input$datafile, input$cgram_product_selected)
-        checkboxInput("fix_y_axis", "fix y axis", value = TRUE)
+        pickerInput("cgram_product_selected", "select product ion", choices = cgram_product_available(), multiple = TRUE)
     })
 
     filtered_parsed_datafile <- reactive({
@@ -119,7 +125,7 @@ server <- function(input, output, session) {
         scales_y <- if_else(input$fix_y_axis, "fixed", "free_y")
         
         gg <- ggplot(data = filtered_parsed_datafile(), aes(x = time, y = intensity, color = file)) +
-            geom_line() +
+            geom_line(size = input$line_size) +
             xlim(input$time_range[1], input$time_range[2]) +
             theme_bw() +
             theme(legend.position = "bottom") +
