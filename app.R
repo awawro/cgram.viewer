@@ -23,35 +23,36 @@ ui <- fluidPage(
     # Sidebar with a slider input for number of bins 
     sidebarLayout(
         sidebarPanel(
-            prettySwitch("display_options", strong("display options"), status = "success", fill = TRUE), 
-            prettySwitch("export_options", strong("export options"), status = "success", fill = TRUE), 
-            helpText("Upload a .csv file containing MRM data"),
+            prettySwitch("display_options", strong("Show Display Options"), status = "success", fill = TRUE), 
+            prettySwitch("export_options", strong("Show Export Options"), status = "success", fill = TRUE), 
+            helpText("Upload a .csv file containing MRM chromatogram data"),
             fileInput("datafile", "csv datafile", accept = ".csv"),
             uiOutput("select_file"),
             uiOutput("select_precursor"),
             uiOutput("select_product"),
             uiOutput("slider_time_range"),
             conditionalPanel(condition = "input.display_options == true",
-                h4(strong("Display options")),
-                prettySwitch("fix_y_axis", "Lock y axis", status = "success", fill = TRUE),
+                h4(strong("Display Options")),
+                prettySwitch("fix_y_axis", "Lock y-axis", status = "success", fill = TRUE),
                 fluidRow(
-                    column(6, sliderInput("legend_cols", "n col", min = 1, max = 5, value = 2, step = 1),),
-                    column(6, sliderInput("line_size", "line szie", min = 0.2, max = 2,value = 1, step = 0.2))
+                    column(6, sliderInput("legend_cols", "Legend columns", min = 1, max = 5, value = 2, step = 1),),
+                    column(6, sliderInput("line_size", "Line (pt)", min = 0.2, max = 2,value = 1, step = 0.2))
                 ),
                 fluidRow(
-                    column(6, sliderInput("plot_width", "select plot w", min = 200, max = 1200, value = 400, step = 10)),
-                    column(6, sliderInput("plot_height", "select plot h", min = 200, max = 1200, value = 400, step = 10))
+                    column(6, sliderInput("plot_width", "Width (px)", min = 200, max = 1200, value = 400, step = 10)),
+                    column(6, sliderInput("plot_height", "Height (px)", min = 200, max = 1200, value = 400, step = 10))
                 )
             ),
             conditionalPanel(condition = "input.export_options == true",
-                h4(strong("Export options")),
+                h4(strong("Export Options")),
                 fluidRow(
-                    column(6, numericInput("out_width", "out w", 5)),
-                    column(6, numericInput("out_height", "out h", 5))
+                    column(6, numericInput("out_width", "Width (in)", 5)),
+                    column(6, numericInput("out_height", "Height (in)", 5))
                 ),
                 fluidRow(
-                    column(6, downloadButton("downloadPdfPlot", label = "as PDF")),
-                    column(6, downloadButton("downloadPngPlot", label = "as PNG"))
+                    column(4, downloadButton("downloadPdfPlot", label = "PDF")),
+                    column(4, downloadButton("downloadPngPlot", label = "PNG")),
+                    column(4, downloadButton("downloadTifPlot", label = "TIFF"))
                 )
             )
             
@@ -148,6 +149,13 @@ server <- function(input, output, session) {
         filename = "plot.png",
         content = function(file) {
             ggsave(file, vals$gg, width = input$out_width, height = input$out_height, device = "png")
+        }
+    )
+    
+    output$downloadTifPlot <- downloadHandler(
+        filename = "plot.tiff",
+        content = function(file) {
+            ggsave(file, vals$gg, width = input$out_width, height = input$out_height, device = "tiff")
         }
     )
 
