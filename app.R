@@ -50,6 +50,11 @@ ui <- fluidPage(
                     column(6, numericInput("out_height", "Height (in)", 5))
                 ),
                 fluidRow(
+                    column(3),
+                    column(6, numericInput("dpi", "DPI", 300)),
+                    column(3)
+                ),
+                fluidRow(
                     column(4, downloadButton("downloadPdfPlot", label = "PDF")),
                     column(4, downloadButton("downloadPngPlot", label = "PNG")),
                     column(4, downloadButton("downloadTifPlot", label = "TIFF"))
@@ -63,7 +68,7 @@ ui <- fluidPage(
             tabsetPanel(
                 tabPanel("Plot", 
                          plotOutput("cgram_plot")),
-                tabPanel("Table", tableOutput("cgram_table"))
+                tabPanel("Table", tableOutput("table"))
             )
         )
     )
@@ -110,6 +115,13 @@ server <- function(input, output, session) {
             product.ion %in% input$cgram_product_selected)
     })
     
+    output$table <- renderTable({
+        req(input$datafile)
+        filtered_parsed_datafile() %>%
+            select(file:product.ion) %>%
+            unique()
+    })
+    
     filtered_time_range <- reactive({
         req(input$cgram_product_selected)
         round(c(min(filtered_parsed_datafile()$time), max(filtered_parsed_datafile()$time)), digits = 1)
@@ -129,6 +141,7 @@ server <- function(input, output, session) {
             geom_line(size = input$line_size) +
             xlim(input$time_range[1], input$time_range[2]) +
             theme_bw() +
+            labs(x = "time / min", y = "intensity", color = "sample filename") +
             theme(legend.position = "bottom") +
             guides(color = guide_legend(ncol = input$legend_cols)) +
             facet_wrap(.~interaction(precursor.ion,product.ion, sep = " -> "), scales = scales_y)
@@ -148,14 +161,14 @@ server <- function(input, output, session) {
     output$downloadPngPlot <- downloadHandler(
         filename = "plot.png",
         content = function(file) {
-            ggsave(file, vals$gg, width = input$out_width, height = input$out_height, device = "png")
+            ggsave(file, vals$gg, width = input$out_width, height = input$out_height, device = "png", dpi = input$dpi)
         }
     )
     
     output$downloadTifPlot <- downloadHandler(
         filename = "plot.tiff",
         content = function(file) {
-            ggsave(file, vals$gg, width = input$out_width, height = input$out_height, device = "tiff")
+            ggsave(file, vals$gg, width = input$out_width, height = input$out_height, device = "tiff", dpi = input$dpi)
         }
     )
 
