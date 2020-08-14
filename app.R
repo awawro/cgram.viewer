@@ -12,6 +12,7 @@ library(shinyWidgets)
 library(dplyr)
 library(stringr)
 library(ggplot2)
+library(DT)
 library(parse.masshunter)
 
 # Define UI for application that draws a histogram
@@ -68,7 +69,7 @@ ui <- fluidPage(
             tabsetPanel(
                 tabPanel("Plot", 
                          plotOutput("cgram_plot")),
-                tabPanel("Table", tableOutput("table"))
+                tabPanel("Table", DTOutput("table"))
             )
         )
     )
@@ -115,7 +116,7 @@ server <- function(input, output, session) {
             product.ion %in% input$cgram_product_selected)
     })
     
-    output$table <- renderTable({
+    output$table <- renderDT({
         req(input$datafile)
         filtered_parsed_datafile() %>%
             select(file:product.ion) %>%
