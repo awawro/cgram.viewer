@@ -90,7 +90,7 @@ server <- function(input, output, session) {
     
     output$download_all <- renderUI({
         req(input$datafile)
-        downloadButton("download_full", label = "Download parsed dataset")
+        downloadButton("download_full", label = "Download parsed dataset", style = "width:100%;")
     })
     
     output$download_full <- downloadHandler(
@@ -134,7 +134,7 @@ server <- function(input, output, session) {
     
     output$download_final <- renderUI({
         req(input$cgram_product_selected)
-        downloadButton("download_filtered", label = "Download filtered dataset")
+        downloadButton("download_filtered", label = "Download filtered dataset", style = "width:100%;")
     })
     
     output$download_filtered <- downloadHandler(
