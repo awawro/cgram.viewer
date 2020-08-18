@@ -24,13 +24,11 @@ ui <- fluidPage(
     # Sidebar with a slider input for number of bins 
     sidebarLayout(
         sidebarPanel(
-            prettySwitch("data_options", strong("Show Data Options"), status = "success", fill = TRUE, value = TRUE), 
-            prettySwitch("display_options", strong("Show Display Options"), status = "success", fill = TRUE), 
-            prettySwitch("export_options", strong("Show Export Options"), status = "success", fill = TRUE), 
+            radioGroupButtons("side_panel", label = NULL, choices = c("Data", "Display", "Export"), justified = TRUE),
             helpText("Upload a .csv file containing MRM chromatogram data"),
             fileInput("datafile", "csv datafile", accept = ".csv"),
-            conditionalPanel(condition = "input.data_options == true",
-                downloadButton("download_full", label = "Download parsed dataset"),
+            conditionalPanel(condition = "input.side_panel == 'Data'",
+                uiOutput("download_all"),
                 div(style="margin-bottom:15px"),
                 uiOutput("select_file"),
                 uiOutput("select_precursor"),
@@ -38,7 +36,7 @@ ui <- fluidPage(
                 uiOutput("slider_time_range"),
                 uiOutput("download_final")
             ),
-            conditionalPanel(condition = "input.display_options == true",
+            conditionalPanel(condition = "input.side_panel == 'Display'",
                 h4(strong("Display Options")),
                 prettySwitch("fix_y_axis", "Lock y-axis", status = "success", fill = TRUE),
                 fluidRow(
@@ -50,7 +48,7 @@ ui <- fluidPage(
                     column(6, sliderInput("plot_height", "Height (px)", min = 200, max = 1200, value = 400, step = 10))
                 )
             ),
-            conditionalPanel(condition = "input.export_options == true",
+            conditionalPanel(condition = "input.side_panel == 'Export'",
                 h4(strong("Export Options")),
                 fluidRow(
                     column(6, numericInput("out_width", "Width (in)", 5)),
@@ -89,7 +87,12 @@ server <- function(input, output, session) {
     parsed_datafile <- reactive({
         parse_masshunter_csv(input$datafile$datapath)
     })
-
+    
+    output$download_all <- renderUI({
+        req(input$datafile)
+        downloadButton("download_full", label = "Download parsed dataset")
+    })
+    
     output$download_full <- downloadHandler(
         filename = "parsed.csv",
         content = function(file) {
