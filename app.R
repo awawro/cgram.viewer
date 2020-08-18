@@ -24,19 +24,25 @@ ui <- fluidPage(
     # Sidebar with a slider input for number of bins 
     sidebarLayout(
         sidebarPanel(
+            prettySwitch("data_options", strong("Show Data Options"), status = "success", fill = TRUE, value = TRUE), 
             prettySwitch("display_options", strong("Show Display Options"), status = "success", fill = TRUE), 
             prettySwitch("export_options", strong("Show Export Options"), status = "success", fill = TRUE), 
             helpText("Upload a .csv file containing MRM chromatogram data"),
             fileInput("datafile", "csv datafile", accept = ".csv"),
-            uiOutput("select_file"),
-            uiOutput("select_precursor"),
-            uiOutput("select_product"),
-            uiOutput("slider_time_range"),
+            conditionalPanel(condition = "input.data_options == true",
+                downloadButton("download_full", label = "Download parsed dataset"),
+                div(style="margin-bottom:15px"),
+                uiOutput("select_file"),
+                uiOutput("select_precursor"),
+                uiOutput("select_product"),
+                uiOutput("slider_time_range"),
+                uiOutput("download_final")
+            ),
             conditionalPanel(condition = "input.display_options == true",
                 h4(strong("Display Options")),
                 prettySwitch("fix_y_axis", "Lock y-axis", status = "success", fill = TRUE),
                 fluidRow(
-                    column(6, sliderInput("legend_cols", "Legend columns", min = 1, max = 5, value = 2, step = 1),),
+                    column(6, sliderInput("legend_cols", "Legend cols", min = 1, max = 5, value = 2, step = 1),),
                     column(6, sliderInput("line_size", "Line (pt)", min = 0.2, max = 2,value = 1, step = 0.2))
                 ),
                 fluidRow(
@@ -84,10 +90,17 @@ server <- function(input, output, session) {
         parse_masshunter_csv(input$datafile$datapath)
     })
 
+    output$download_full <- downloadHandler(
+        filename = "parsed.csv",
+        content = function(file) {
+            write.csv(parsed_datafile(), file, row.names = FALSE)
+        }
+    )
+    
     cgram_files_all <- reactive(unique(parsed_datafile()$file))
     cgram_precursor_all <- reactive(unique(parsed_datafile()$precursor.ion))
     cgram_product_all <- reactive(unique(parsed_datafile()$product.ion))
-    
+
     output$select_file <- renderUI({
         req(input$datafile)
         pickerInput("cgram_files_selected", "select cgram files", choices = cgram_files_all(), multiple = TRUE)
@@ -115,6 +128,18 @@ server <- function(input, output, session) {
             precursor.ion %in% input$cgram_precursor_selected &
             product.ion %in% input$cgram_product_selected)
     })
+    
+    output$download_final <- renderUI({
+        req(input$cgram_product_selected)
+        downloadButton("download_filtered", label = "Download filtered dataset")
+    })
+    
+    output$download_filtered <- downloadHandler(
+        filename = "filtered.csv",
+        content = function(file) {
+            write.csv(filtered_parsed_datafile(), file, row.names = FALSE)
+        }
+    )
     
     output$table <- renderDT({
         req(input$datafile)
