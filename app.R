@@ -24,9 +24,8 @@ ui <- fluidPage(
     # Sidebar with a slider input for number of bins 
     sidebarLayout(
         sidebarPanel(
-            radioGroupButtons("side_panel", label = NULL, choices = c("Data", "Display", "Export"), justified = TRUE),
-            helpText("Upload a .csv file containing MRM chromatogram data"),
-            fileInput("datafile", "csv datafile", accept = ".csv"),
+            fileInput("datafile", "Load a .csv export file", accept = ".csv"),
+            radioGroupButtons("side_panel", label = NULL, choices = c("Data", "Display", "Export"), justified = TRUE, status = "primary"),
             conditionalPanel(condition = "input.side_panel == 'Data'",
                 uiOutput("download_all"),
                 div(style="margin-bottom:15px"),
