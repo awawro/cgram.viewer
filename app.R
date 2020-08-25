@@ -39,7 +39,7 @@ ui <- fluidPage(
                 prettySwitch("fix_y_axis", "Lock y-axis", status = "success", fill = TRUE),
                 fluidRow(
                     column(6, sliderInput("legend_cols", "Legend cols", min = 1, max = 5, value = 2, step = 1),),
-                    column(6, sliderInput("line_size", "Line (pt)", min = 0.2, max = 2,value = 1, step = 0.2))
+                    column(6, sliderInput("line_size", "Line (pt)", min = 0.2, max = 2,value = 0.8, step = 0.1))
                 ),
                 fluidRow(
                     column(6, sliderInput("plot_width", "Width (px)", min = 200, max = 1200, value = 400, step = 10)),
