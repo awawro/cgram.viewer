@@ -30,8 +30,7 @@ ui <- fluidPage(
                 uiOutput("download_all"),
                 div(style="margin-bottom:15px"),
                 uiOutput("select_file"),
-                uiOutput("select_precursor"),
-                uiOutput("select_product"),
+                uiOutput("select_mrm"),
                 uiOutput("slider_time_range"),
                 uiOutput("download_final")
             ),
@@ -84,7 +83,8 @@ server <- function(input, output, session) {
     vals <- reactiveValues()
     
     parsed_datafile <- reactive({
-        parse_masshunter_csv(input$datafile$datapath)
+        parse_masshunter_csv(input$datafile$datapath) %>%
+            mutate(MRM = paste(precursor.ion, product.ion, sep = " -> "))
     })
     
     output$download_all <- renderUI({
@@ -95,51 +95,39 @@ server <- function(input, output, session) {
     output$download_full <- downloadHandler(
         filename = "parsed.csv",
         content = function(file) {
-            write.csv(parsed_datafile(), file, row.names = FALSE)
+            write.csv(select(parsed_datafile(), -"MRM"), file, row.names = FALSE)
         }
     )
     
     cgram_files_all <- reactive(unique(parsed_datafile()$file))
-    cgram_precursor_all <- reactive(unique(parsed_datafile()$precursor.ion))
-    cgram_product_all <- reactive(unique(parsed_datafile()$product.ion))
 
     output$select_file <- renderUI({
         req(input$datafile)
         pickerInput("cgram_files_selected", "select cgram files", choices = cgram_files_all(), multiple = TRUE)
     })
     
-    output$select_precursor <- renderUI({
-        req(input$datafile)
-        pickerInput("cgram_precursor_selected", "select precursor ion", choices = cgram_precursor_all(), multiple = TRUE)
+    cgram_mrms <- reactive({
+        unique(parsed_datafile()$MRM)
     })
     
-    cgram_product_available <- reactive({
-         MRM_all <- unique(parsed_datafile()[c("precursor.ion", "product.ion")])
-         product_available <- filter(MRM_all, precursor.ion %in% input$cgram_precursor_selected)$product.ion
-         return(product_available)
-    })
-    
-    output$select_product <- renderUI({
+    output$select_mrm <- renderUI({
         req(input$datafile)
-        pickerInput("cgram_product_selected", "select product ion", choices = cgram_product_available(), multiple = TRUE)
+        pickerInput("cgram_mrm_selected", "select MRMs", choices = cgram_mrms(), multiple = TRUE)
     })
 
     filtered_parsed_datafile <- reactive({
-        filter(parsed_datafile(),
-            file %in% input$cgram_files_selected &
-            precursor.ion %in% input$cgram_precursor_selected &
-            product.ion %in% input$cgram_product_selected)
+        filter(parsed_datafile(), file %in% input$cgram_files_selected & MRM %in% input$cgram_mrm_selected)
     })
     
     output$download_final <- renderUI({
-        req(input$cgram_product_selected)
+        req(input$cgram_mrm_selected)
         downloadButton("download_filtered", label = "Download filtered dataset", style = "width:100%;")
     })
     
     output$download_filtered <- downloadHandler(
         filename = "filtered.csv",
         content = function(file) {
-            write.csv(filtered_parsed_datafile(), file, row.names = FALSE)
+            write.csv(select(filtered_parsed_datafile(), -"MRM"), file, row.names = FALSE)
         }
     )
     
@@ -151,7 +139,7 @@ server <- function(input, output, session) {
     })
     
     filtered_time_range <- reactive({
-        req(input$cgram_product_selected)
+        req(input$cgram_mrm_selected)
         round(c(min(filtered_parsed_datafile()$time), max(filtered_parsed_datafile()$time)), digits = 1)
     })
     
@@ -161,7 +149,7 @@ server <- function(input, output, session) {
     })
     
     output$cgram_plot <- renderPlot({
-        req(input$datafile, input$cgram_product_selected)
+        req(input$datafile, input$cgram_mrm_selected)
         
         scales_y <- if_else(input$fix_y_axis, "fixed", "free_y")
         
@@ -172,7 +160,7 @@ server <- function(input, output, session) {
             labs(x = "time / min", y = "intensity", color = "sample filename") +
             theme(legend.position = "bottom") +
             guides(color = guide_legend(ncol = input$legend_cols)) +
-            facet_wrap(.~interaction(precursor.ion,product.ion, sep = " -> "), scales = scales_y)
+            facet_wrap(.~MRM, scales = scales_y)
         
         vals$gg <- gg
         
