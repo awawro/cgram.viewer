@@ -15,17 +15,15 @@ library(ggplot2)
 library(DT)
 library(parse.masshunter)
 
-# Define UI for application that draws a histogram
 ui <- fluidPage(
 
-    # Application title
     titlePanel("Chromatogram Viewer"),
 
-    # Sidebar with a slider input for number of bins 
     sidebarLayout(
         sidebarPanel(
             fileInput("datafile", "Load a .csv export file", accept = ".csv"),
             radioGroupButtons("side_panel", label = NULL, choices = c("Data", "Display", "Export"), justified = TRUE, status = "primary"),
+            # Data panel
             conditionalPanel(condition = "input.side_panel == 'Data'",
                 uiOutput("download_all"),
                 div(style="margin-bottom:15px"),
@@ -34,6 +32,7 @@ ui <- fluidPage(
                 uiOutput("slider_time_range"),
                 uiOutput("download_final")
             ),
+            # Display panel
             conditionalPanel(condition = "input.side_panel == 'Display'",
                 h4(strong("Display Options")),
                 prettySwitch("fix_y_axis", "Lock y-axis", status = "success", fill = TRUE),
@@ -43,6 +42,7 @@ ui <- fluidPage(
                 ),
                 selectInput("facet_by", "Facet by:", choices = c("MRM", "file"))
             ),
+            # Export panel
             conditionalPanel(condition = "input.side_panel == 'Export'",
                 h4(strong("Export Options")),
                 fluidRow(
@@ -56,7 +56,6 @@ ui <- fluidPage(
             
         ),
 
-        # Show a plot of the generated distribution
         mainPanel(
             tabsetPanel(
                 tabPanel("Plot", 
@@ -67,11 +66,12 @@ ui <- fluidPage(
     )
 )
 
-# Define server logic required to draw a histogram
 server <- function(input, output, session) {
     
+    # initialize reactive values for ggplot storage
     vals <- reactiveValues()
     
+    # use parse.masshunter, add MRM column
     parsed_datafile <- reactive({
         parse_masshunter_csv(input$datafile$datapath) %>%
             mutate(MRM = paste(precursor.ion, product.ion, sep = " -> "))
@@ -109,6 +109,7 @@ server <- function(input, output, session) {
         filter(parsed_datafile(), file %in% input$cgram_files_selected & MRM %in% input$cgram_mrm_selected)
     })
     
+    # Download filtered dataset button & handler
     output$download_final <- renderUI({
         req(input$cgram_mrm_selected)
         downloadButton("download_filtered", label = "Download filtered dataset", style = "width:100%;")
@@ -138,13 +139,14 @@ server <- function(input, output, session) {
         sliderInput("time_range", "select time range", min = filtered_time_range()[1], max = filtered_time_range()[2], value = c(filtered_time_range()[1], filtered_time_range()[2]), step = 0.05)
     })
     
-    ###
+    # match input variable with aesthetics
     fac_col <- reactive({
         if(input$facet_by == "MRM") {x <- c("MRM", "file")}
         else x <- c("file", "MRM")
         return(x)
     })
     
+    # render plot
     output$cgram_plot <- renderPlot({
         req(input$datafile, input$cgram_mrm_selected)
         
@@ -164,6 +166,7 @@ server <- function(input, output, session) {
         print(gg)
     }, res = 72, width = function() {input$plot_width * 72}, height = function() {input$plot_height * 72})
     
+    # download PDF handler
     output$downloadPdfPlot <- downloadHandler(
         filename = "plot.pdf",
         content = function(file) {
@@ -172,5 +175,4 @@ server <- function(input, output, session) {
     )
 }
 
-# Run the application 
 shinyApp(ui = ui, server = server)
