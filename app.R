@@ -40,7 +40,8 @@ ui <- fluidPage(
                 fluidRow(
                     column(6, sliderInput("legend_cols", "Legend cols", min = 1, max = 5, value = 2, step = 1),),
                     column(6, sliderInput("line_size", "Line (pt)", min = 0.25, max = 1.5 ,value = 0.5, step = 0.25))
-                )
+                ),
+                selectInput("facet_by", "Facet by:", choices = c("MRM", "file"))
             ),
             conditionalPanel(condition = "input.side_panel == 'Export'",
                 h4(strong("Export Options")),
@@ -137,19 +138,26 @@ server <- function(input, output, session) {
         sliderInput("time_range", "select time range", min = filtered_time_range()[1], max = filtered_time_range()[2], value = c(filtered_time_range()[1], filtered_time_range()[2]), step = 0.05)
     })
     
+    ###
+    fac_col <- reactive({
+        if(input$facet_by == "MRM") {x <- c("MRM", "file")}
+        else x <- c("file", "MRM")
+        return(x)
+    })
+    
     output$cgram_plot <- renderPlot({
         req(input$datafile, input$cgram_mrm_selected)
         
         scales_y <- if_else(input$fix_y_axis, "fixed", "free_y")
         
-        gg <- ggplot(data = filtered_parsed_datafile(), aes(x = time, y = intensity, color = file)) +
+        gg <- ggplot(data = filtered_parsed_datafile(), aes(x = time, y = intensity, color = !!sym(fac_col()[2]))) +
             geom_line(size = input$line_size) +
             xlim(input$time_range[1], input$time_range[2]) +
             theme_bw() +
             labs(x = "time / min", y = "intensity", color = "sample filename") +
             theme(legend.position = "bottom") +
             guides(color = guide_legend(ncol = input$legend_cols)) +
-            facet_wrap(.~MRM, scales = scales_y)
+            facet_wrap(vars(!!sym(fac_col()[1])), scales = scales_y)
         
         vals$gg <- gg
         
