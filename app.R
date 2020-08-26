@@ -39,28 +39,17 @@ ui <- fluidPage(
                 prettySwitch("fix_y_axis", "Lock y-axis", status = "success", fill = TRUE),
                 fluidRow(
                     column(6, sliderInput("legend_cols", "Legend cols", min = 1, max = 5, value = 2, step = 1),),
-                    column(6, sliderInput("line_size", "Line (pt)", min = 0.2, max = 2,value = 0.8, step = 0.1))
-                ),
-                fluidRow(
-                    column(6, sliderInput("plot_width", "Width (px)", min = 200, max = 1200, value = 400, step = 10)),
-                    column(6, sliderInput("plot_height", "Height (px)", min = 200, max = 1200, value = 400, step = 10))
+                    column(6, sliderInput("line_size", "Line (pt)", min = 0.25, max = 1.5 ,value = 0.5, step = 0.25))
                 )
             ),
             conditionalPanel(condition = "input.side_panel == 'Export'",
                 h4(strong("Export Options")),
                 fluidRow(
-                    column(6, numericInput("out_width", "Width (in)", 5)),
-                    column(6, numericInput("out_height", "Height (in)", 5))
+                    column(6, sliderInput("plot_width", "Width (in)", min = 4, max = 12, value = 5, step = 0.25)),
+                    column(6, sliderInput("plot_height", "Height (in)", min = 4, max = 12, value = 5, step = 0.25))
                 ),
                 fluidRow(
-                    column(3),
-                    column(6, numericInput("dpi", "DPI", 300)),
-                    column(3)
-                ),
-                fluidRow(
-                    column(4, downloadButton("downloadPdfPlot", label = "PDF")),
-                    column(4, downloadButton("downloadPngPlot", label = "PNG")),
-                    column(4, downloadButton("downloadTifPlot", label = "TIFF"))
+                    downloadButton("downloadPdfPlot", label = "Download as PDF", style = "width:100%;")
                 )
             )
             
@@ -165,29 +154,14 @@ server <- function(input, output, session) {
         vals$gg <- gg
         
         print(gg)
-    }, width = function() input$plot_width, height = function() input$plot_height)
+    }, res = 72, width = function() {input$plot_width * 72}, height = function() {input$plot_height * 72})
     
     output$downloadPdfPlot <- downloadHandler(
         filename = "plot.pdf",
         content = function(file) {
-            ggsave(file, vals$gg, width = input$out_width, height = input$out_height, device = "pdf")
+            ggsave(file, vals$gg, width = input$plot_width, height = input$plot_height, device = "pdf")
         }
     )
-    
-    output$downloadPngPlot <- downloadHandler(
-        filename = "plot.png",
-        content = function(file) {
-            ggsave(file, vals$gg, width = input$out_width, height = input$out_height, device = "png", dpi = input$dpi)
-        }
-    )
-    
-    output$downloadTifPlot <- downloadHandler(
-        filename = "plot.tiff",
-        content = function(file) {
-            ggsave(file, vals$gg, width = input$out_width, height = input$out_height, device = "tiff", dpi = input$dpi)
-        }
-    )
-
 }
 
 # Run the application 
