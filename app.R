@@ -46,8 +46,8 @@ ui <- fluidPage(
             conditionalPanel(condition = "input.side_panel == 'Export'",
                 h4(strong("Export Options")),
                 fluidRow(
-                    column(6, sliderInput("plot_width", "Width (in)", min = 4, max = 12, value = 5, step = 0.25)),
-                    column(6, sliderInput("plot_height", "Height (in)", min = 4, max = 12, value = 5, step = 0.25))
+                    column(6, sliderInput("plot_width", "Width (in)", min = 4, max = 12, value = 6, step = 0.25)),
+                    column(6, sliderInput("plot_height", "Height (in)", min = 4, max = 12, value = 6, step = 0.25))
                 ),
                 fluidRow(
                     downloadButton("downloadPdfPlot", label = "Download as PDF", style = "width:100%;")
@@ -156,7 +156,7 @@ server <- function(input, output, session) {
             geom_line(size = input$line_size) +
             xlim(input$time_range[1], input$time_range[2]) +
             theme_bw() +
-            labs(x = "time / min", y = "intensity", color = "sample filename") +
+            labs(x = "time / min", y = "intensity", color = fac_col()[2]) +
             theme(legend.position = "bottom") +
             guides(color = guide_legend(ncol = input$legend_cols)) +
             facet_wrap(vars(!!sym(fac_col()[1])), scales = scales_y)
