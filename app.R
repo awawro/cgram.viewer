@@ -136,11 +136,13 @@ server <- function(input, output, session) {
     })
     
     # match input variable with aesthetics
-    fac_col <- reactive({
-        if(input$facet_by == "MRM") {x <- c("MRM", "file")}
-        else x <- c("file", "MRM")
-        return(x)
-    })
+    #fac_col <- reactive({
+    #    if(input$facet_by == "MRM") {x <- c("MRM", "file")}
+    #    else x <- c("file", "MRM")
+    #    return(x)
+    #})
+    
+    
     
     # render plot
     output$cgram_plot <- renderPlot({
@@ -148,14 +150,16 @@ server <- function(input, output, session) {
         
         scales_y <- if_else(input$fix_y_axis, "fixed", "free_y")
         
-        gg <- ggplot(data = filtered_parsed_datafile(), aes(x = time, y = intensity, color = !!sym(fac_col()[2]))) +
+        fac_col <- if_else(rep(input$facet_by == "MRM", 2), c("MRM", "file"), c("file", "MRM"))
+        
+        gg <- ggplot(data = filtered_parsed_datafile(), aes(x = time, y = intensity, color = !!sym(fac_col[2]))) +
             geom_line(size = input$line_size) +
             xlim(input$time_range[1], input$time_range[2]) +
             theme_bw() +
-            labs(x = "time / min", y = "intensity", color = fac_col()[2]) +
+            labs(x = "time / min", y = "intensity", color = fac_col[2]) +
             theme(legend.position = "bottom") +
             guides(color = guide_legend(ncol = input$legend_cols)) +
-            facet_wrap(vars(!!sym(fac_col()[1])), scales = scales_y)
+            facet_wrap(vars(!!sym(fac_col[1])), scales = scales_y)
         
         vals$gg <- gg
         
