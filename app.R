@@ -96,13 +96,9 @@ server <- function(input, output, session) {
         pickerInput("cgram_files_selected", "select cgram files", choices = cgram_files_all(), multiple = TRUE)
     })
     
-    cgram_mrms <- reactive({
-        unique(parsed_datafile()$MRM)
-    })
-    
     output$select_mrm <- renderUI({
         req(input$datafile)
-        pickerInput("cgram_mrm_selected", "select MRMs", choices = cgram_mrms(), multiple = TRUE)
+        pickerInput("cgram_mrm_selected", "select MRMs", choices = unique(parsed_datafile()$MRM), multiple = TRUE)
     })
 
     filtered_parsed_datafile <- reactive({
