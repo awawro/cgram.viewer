@@ -1,12 +1,3 @@
-#
-# This is a Shiny web application. You can run the application by clicking
-# the 'Run App' button above.
-#
-# Find out more about building applications with Shiny here:
-#
-#    http://shiny.rstudio.com/
-#
-
 library(shiny)
 library(shinyWidgets)
 library(dplyr)
@@ -68,6 +59,9 @@ ui <- fluidPage(
 
 server <- function(input, output, session) {
     
+    # download handlers and outputs
+    source("downloadData.R", local = TRUE)
+    
     # initialize reactive values for ggplot storage
     vals <- reactiveValues()
     
@@ -77,23 +71,9 @@ server <- function(input, output, session) {
             mutate(MRM = paste(precursor.ion, product.ion, sep = " -> "))
     })
     
-    output$download_all <- renderUI({
-        req(input$datafile)
-        downloadButton("download_full", label = "Download parsed dataset", style = "width:100%;")
-    })
-    
-    output$download_full <- downloadHandler(
-        filename = "parsed.csv",
-        content = function(file) {
-            write.csv(select(parsed_datafile(), -"MRM"), file, row.names = FALSE)
-        }
-    )
-    
-    cgram_files_all <- reactive(unique(parsed_datafile()$file))
-
     output$select_file <- renderUI({
         req(input$datafile)
-        pickerInput("cgram_files_selected", "select cgram files", choices = cgram_files_all(), multiple = TRUE)
+        pickerInput("cgram_files_selected", "select cgram files", choices = unique(parsed_datafile()$file), multiple = TRUE)
     })
     
     output$select_mrm <- renderUI({
@@ -104,52 +84,18 @@ server <- function(input, output, session) {
     filtered_parsed_datafile <- reactive({
         filter(parsed_datafile(), file %in% input$cgram_files_selected & MRM %in% input$cgram_mrm_selected)
     })
-    
-    # Download filtered dataset button & handler
-    output$download_final <- renderUI({
-        req(input$cgram_mrm_selected)
-        downloadButton("download_filtered", label = "Download filtered dataset", style = "width:100%;")
-    })
-    
-    output$download_filtered <- downloadHandler(
-        filename = "filtered.csv",
-        content = function(file) {
-            write.csv(select(filtered_parsed_datafile(), -"MRM"), file, row.names = FALSE)
-        }
-    )
-    
-    output$table <- renderDT({
-        req(input$datafile)
-        filtered_parsed_datafile() %>%
-            select(file:product.ion) %>%
-            unique()
-    })
-    
-    filtered_time_range <- reactive({
-        req(input$cgram_mrm_selected)
-        round(c(min(filtered_parsed_datafile()$time), max(filtered_parsed_datafile()$time)), digits = 1)
-    })
-    
+
     output$slider_time_range <- renderUI({
-        req(input$datafile)
-        sliderInput("time_range", "select time range", min = filtered_time_range()[1], max = filtered_time_range()[2], value = c(filtered_time_range()[1], filtered_time_range()[2]), step = 0.05)
+        req(input$datafile, input$cgram_mrm_selected)
+        filtered_time_range <- round(c(min(filtered_parsed_datafile()$time), max(filtered_parsed_datafile()$time)), digits = 1)
+        sliderInput("time_range", "select time range", min = filtered_time_range[1], max = filtered_time_range[2], value = c(filtered_time_range[1], filtered_time_range[2]), step = 0.05)
     })
-    
-    # match input variable with aesthetics
-    #fac_col <- reactive({
-    #    if(input$facet_by == "MRM") {x <- c("MRM", "file")}
-    #    else x <- c("file", "MRM")
-    #    return(x)
-    #})
-    
-    
     
     # render plot
     output$cgram_plot <- renderPlot({
         req(input$datafile, input$cgram_mrm_selected)
         
         scales_y <- if_else(input$fix_y_axis, "fixed", "free_y")
-        
         fac_col <- if_else(rep(input$facet_by == "MRM", 2), c("MRM", "file"), c("file", "MRM"))
         
         gg <- ggplot(data = filtered_parsed_datafile(), aes(x = time, y = intensity, color = !!sym(fac_col[2]))) +
@@ -166,13 +112,14 @@ server <- function(input, output, session) {
         print(gg)
     }, res = 72, width = function() {input$plot_width * 72}, height = function() {input$plot_height * 72})
     
-    # download PDF handler
-    output$downloadPdfPlot <- downloadHandler(
-        filename = "plot.pdf",
-        content = function(file) {
-            ggsave(file, vals$gg, width = input$plot_width, height = input$plot_height, device = "pdf")
-        }
-    )
+    # render table
+    output$table <- renderDT({
+        req(input$datafile)
+        filtered_parsed_datafile() %>%
+            select(file:product.ion) %>%
+            unique()
+    })
+
 }
 
 shinyApp(ui = ui, server = server)
