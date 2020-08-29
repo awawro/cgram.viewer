@@ -16,12 +16,10 @@ ui <- fluidPage(
             radioGroupButtons("side_panel", label = NULL, choices = c("Data", "Display", "Export"), justified = TRUE, status = "primary"),
             # Data panel
             conditionalPanel(condition = "input.side_panel == 'Data'",
-                uiOutput("download_all"),
                 div(style="margin-bottom:15px"),
                 uiOutput("select_file"),
                 uiOutput("select_mrm"),
-                uiOutput("slider_time_range"),
-                uiOutput("download_final")
+                uiOutput("slider_time_range")
             ),
             # Display panel
             conditionalPanel(condition = "input.side_panel == 'Display'",
@@ -31,18 +29,20 @@ ui <- fluidPage(
                     column(6, sliderInput("legend_cols", "Legend cols", min = 1, max = 5, value = 2, step = 1),),
                     column(6, sliderInput("line_size", "Line (pt)", min = 0.25, max = 1.5 ,value = 0.5, step = 0.25))
                 ),
-                selectInput("facet_by", "Facet by:", choices = c("MRM", "file"))
+                selectInput("facet_by", "Facet by:", choices = c("MRM", "file")),
+                fluidRow(
+                    column(6, sliderInput("plot_width", "Width (in)", min = 4, max = 12, value = 6, step = 0.25)),
+                    column(6, sliderInput("plot_height", "Height (in)", min = 4, max = 12, value = 6, step = 0.25))
+                )
             ),
             # Export panel
             conditionalPanel(condition = "input.side_panel == 'Export'",
                 h4(strong("Export Options")),
-                fluidRow(
-                    column(6, sliderInput("plot_width", "Width (in)", min = 4, max = 12, value = 6, step = 0.25)),
-                    column(6, sliderInput("plot_height", "Height (in)", min = 4, max = 12, value = 6, step = 0.25))
-                ),
-                fluidRow(
-                    downloadButton("downloadPdfPlot", label = "Download as PDF", style = "width:100%;")
-                )
+                uiOutput("download_all"),
+                div(style="margin-bottom:10px"),
+                uiOutput("download_final"),
+                div(style="margin-bottom:10px"),
+                downloadButton("downloadPdfPlot", label = "Download plot as PDF", style = "width:100%;")
             )
             
         ),
