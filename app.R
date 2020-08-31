@@ -6,6 +6,8 @@ library(ggplot2)
 library(DT)
 library(parse.masshunter)
 
+options(shiny.maxRequestSize = 30*1024^2)
+
 ui <- fluidPage(
 
     titlePanel("Chromatogram Viewer"),
@@ -17,8 +19,8 @@ ui <- fluidPage(
             # Data panel
             conditionalPanel(condition = "input.side_panel == 'Data'",
                 div(style="margin-bottom:15px"),
-                uiOutput("select_file"),
                 uiOutput("select_data"),
+                uiOutput("select_file"),
                 conditionalPanel(condition = "input.data_type == 'MRM'",
                                  uiOutput("select_mrm")
                 ),
@@ -34,11 +36,11 @@ ui <- fluidPage(
             conditionalPanel(condition = "input.side_panel == 'Display'",
                 h4(strong("Display Options")),
                 prettySwitch("fix_y_axis", "Lock y-axis", status = "success", fill = TRUE),
+                selectInput("facet_by", "Facet by:", choices = c("ion", "file")),
                 fluidRow(
                     column(6, sliderInput("legend_cols", "Legend cols", min = 1, max = 5, value = 2, step = 1),),
                     column(6, sliderInput("line_size", "Line (pt)", min = 0.25, max = 1.5 ,value = 0.5, step = 0.25))
                 ),
-                selectInput("facet_by", "Facet by:", choices = c("ion", "file")),
                 fluidRow(
                     column(6, sliderInput("plot_width", "Width (in)", min = 4, max = 12, value = 6, step = 0.25)),
                     column(6, sliderInput("plot_height", "Height (in)", min = 4, max = 12, value = 6, step = 0.25))
@@ -59,7 +61,11 @@ ui <- fluidPage(
         mainPanel(
             tabsetPanel(
                 tabPanel("Plot", 
-                         plotOutput("cgram_plot"))
+                         plotOutput("cgram_plot")),
+                tabPanel("Parsed",
+                         DTOutput("parsed_table")),
+                tabPanel("Filtered",
+                         DTOutput("filtered_table"))
             )
         )
     )
@@ -69,14 +75,9 @@ server <- function(input, output, session) {
     
     # download handlers and outputs
     source("downloadData.R", local = TRUE)
-    
+
     # initialize reactive values for ggplot storage
     vals <- reactiveValues()
-    
-    #output$select_data <- renderUI({
-    #   req(input$datafile)
-    #    selectInput("data_type", "Select data type", choices = c("MRM"))
-    #})
     
     # use parse.masshunter
     parsed_datafile <- reactive({
@@ -84,29 +85,48 @@ server <- function(input, output, session) {
             {if("MRM" %in% .$type) . <- mutate(., MRM = paste(precursor.ion, product.ion, sep = " -> ")) else .}
     })
     
-    output$select_file <- renderUI({
-        req(input$datafile)
-        pickerInput("cgram_files_selected", "select cgram files", choices = unique(parsed_datafile()$file), multiple = TRUE)
-    })
-    
     output$select_data <- renderUI({
         req(input$datafile)
         selectInput("data_type", "Select data type", choices = unique(parsed_datafile()$type))
     })
     
+    files_available <- reactive({
+        parsed_datafile() %>%
+        filter(type == input$data_type) %>%
+        pull(file) %>%
+        unique()
+    })
+    
+    output$select_file <- renderUI({
+        req(input$datafile)
+        pickerInput("cgram_files_selected", "select cgram files", choices = files_available(), multiple = TRUE)
+    })
+    
     output$select_mrm <- renderUI({
         req(input$datafile, input$data_type == "MRM")
-        pickerInput("cgram_mrm_selected", "select MRMs", choices = unique(parsed_datafile()$MRM), multiple = TRUE)
+        MRMs_available <- parsed_datafile() %>%
+            filter(file %in% input$cgram_files_selected) %>%
+            pull(MRM) %>%
+            unique()
+        pickerInput("cgram_mrm_selected", "select MRMs", choices = MRMs_available, multiple = TRUE)
     })
     
     output$select_sim <- renderUI({
         req(input$datafile, input$data_type == "SIM")
-        pickerInput("cgram_sim_selected", "select SIMs", choices = unique(parsed_datafile()$SIM), multiple = TRUE)
+        SIMs_available <- parsed_datafile() %>%
+            filter(file %in% input$cgram_files_selected) %>%
+            pull(SIM) %>%
+            unique()
+        pickerInput("cgram_sim_selected", "select SIMs", choices = SIMs_available, multiple = TRUE)
     })
     
     output$select_eic <- renderUI({
         req(input$datafile, input$data_type == "EIC")
-        pickerInput("cgram_eic_selected", "select EICs", choices = unique(parsed_datafile()$EIC), multiple = TRUE)
+        EICs_available <- parsed_datafile() %>%
+            filter(file %in% input$cgram_files_selected) %>%
+            pull(EIC) %>%
+            unique()
+        pickerInput("cgram_eic_selected", "select EICs", choices = EICs_available, multiple = TRUE)
     })
     
     ions_selected <- reactive({
@@ -151,6 +171,14 @@ server <- function(input, output, session) {
         print(gg)
     }, res = 72, width = function() {input$plot_width * 72}, height = function() {input$plot_height * 72})
 
+    output$parsed_table <- renderDT({
+        parsed_datafile()
+    })
+    
+    output$filtered_table <- renderDT({
+        filtered_parsed_datafile()
+    })
+    
 }
 
 shinyApp(ui = ui, server = server)
