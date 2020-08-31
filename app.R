@@ -90,16 +90,13 @@ server <- function(input, output, session) {
         selectInput("data_type", "Select data type", choices = unique(parsed_datafile()$type))
     })
     
-    files_available <- reactive({
-        parsed_datafile() %>%
-        filter(type == input$data_type) %>%
-        pull(file) %>%
-        unique()
-    })
-    
     output$select_file <- renderUI({
         req(input$datafile)
-        pickerInput("cgram_files_selected", "select cgram files", choices = files_available(), multiple = TRUE)
+        files_available <- parsed_datafile() %>%
+            filter(type == input$data_type) %>%
+            pull(file) %>%
+            unique()
+        pickerInput("cgram_files_selected", "select cgram files", choices = files_available, multiple = TRUE)
     })
     
     output$select_mrm <- renderUI({
