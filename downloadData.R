@@ -28,7 +28,7 @@ output$download_filtered <- downloadHandler(
 output$downloadPdfPlot <- downloadHandler(
   filename = "plot.pdf",
   content = function(file) {
-    ggsave(file, vals$gg, width = input$plot_width, height = input$plot_height, device = "pdf")
+    ggsave(file, gg(), width = input$plot_width, height = input$plot_height, device = "pdf")
   }
 )
 

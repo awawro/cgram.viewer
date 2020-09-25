@@ -59,25 +59,15 @@ ui <- fluidPage(
         ),
 
         mainPanel(
-            tabsetPanel(
-                tabPanel("Plot", 
-                         plotOutput("cgram_plot")),
-                tabPanel("Parsed",
-                         DTOutput("parsed_table")),
-                tabPanel("Filtered",
-                         DTOutput("filtered_table"))
+            plotOutput("cgram_plot")
             )
         )
     )
-)
 
 server <- function(input, output, session) {
     
     # download handlers and outputs
     source("downloadData.R", local = TRUE)
-
-    # initialize reactive values for ggplot storage
-    vals <- reactiveValues()
     
     # use parse.masshunter
     parsed_datafile <- reactive({
@@ -147,14 +137,12 @@ server <- function(input, output, session) {
         sliderInput("time_range", "select time range", min = filtered_time_range[1], max = filtered_time_range[2], value = c(filtered_time_range[1], filtered_time_range[2]), step = 0.05)
     })
     
-    # render plot
-    output$cgram_plot <- renderPlot({
-        req(input$datafile, (!is.null(input$cgram_mrm_selected) | !is.null(input$cgram_sim_selected) | !is.null(input$cgram_eic_selected)))
-        
+    # generate plot
+    gg <- reactive({
         scales_y <- if_else(input$fix_y_axis, "fixed", "free_y")
         fac_col <- if_else(rep(input$facet_by == "ion", 2), c(input$data_type, "file"), c("file", input$data_type))
         
-        gg <- ggplot(data = filtered_parsed_datafile(), aes(x = time, y = intensity, color = !!sym(fac_col[2]))) +
+        ggplot(data = filtered_parsed_datafile(), aes(x = time, y = intensity, color = !!sym(fac_col[2]))) +
             geom_line(size = input$line_size) +
             xlim(input$time_range[1], input$time_range[2]) +
             theme_bw() +
@@ -162,19 +150,15 @@ server <- function(input, output, session) {
             theme(legend.position = "bottom") +
             guides(color = guide_legend(ncol = input$legend_cols)) +
             facet_wrap(vars(!!sym(fac_col[1])), scales = scales_y)
-        
-        vals$gg <- gg
-        
-        print(gg)
-    }, res = 72, width = function() {input$plot_width * 72}, height = function() {input$plot_height * 72})
-
-    output$parsed_table <- renderDT({
-        parsed_datafile()
     })
     
-    output$filtered_table <- renderDT({
-        filtered_parsed_datafile()
-    })
+    # render plot
+    output$cgram_plot <- renderPlot({
+        req(input$datafile, (!is.null(input$cgram_mrm_selected) | !is.null(input$cgram_sim_selected) | !is.null(input$cgram_eic_selected)))
+        
+        gg()
+        
+    }, res = 72, width = function() {input$plot_width * 72}, height = function() {input$plot_height * 72})
     
 }
 
