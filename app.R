@@ -127,7 +127,7 @@ server <- function(input, output, session) {
     filtered_parsed_datafile <- reactive({
         filter(parsed_datafile(),
                 file %in% input$cgram_files_selected &
-                !!sym(input$data_type) %in% ions_selected()
+                .data[[input$data_type]] %in% ions_selected()
                 )
     })
 
@@ -142,14 +142,14 @@ server <- function(input, output, session) {
         scales_y <- if_else(input$fix_y_axis, "fixed", "free_y")
         fac_col <- if_else(rep(input$facet_by == "ion", 2), c(input$data_type, "file"), c("file", input$data_type))
         
-        ggplot(data = filtered_parsed_datafile(), aes(x = time, y = intensity, color = !!sym(fac_col[2]))) +
+        ggplot(data = filtered_parsed_datafile(), aes(x = time, y = intensity, color = .data[[fac_col[2]]])) +
             geom_line(size = input$line_size) +
             xlim(input$time_range[1], input$time_range[2]) +
             theme_bw() +
             labs(x = "time / min", y = "intensity", color = fac_col[2]) +
             theme(legend.position = "bottom") +
             guides(color = guide_legend(ncol = input$legend_cols)) +
-            facet_wrap(vars(!!sym(fac_col[1])), scales = scales_y)
+            facet_wrap(vars(.data[[fac_col[1]]]), scales = scales_y)
     })
     
     # render plot
